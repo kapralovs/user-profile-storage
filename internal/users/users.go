@@ -12,6 +12,7 @@ func Edit() error {
 	return nil
 }
 
-func Load() (*User, error) {
-	return user, nil
+func Load() (*UserProfile, error) {
+	for 
+	return usr, nil
 }
