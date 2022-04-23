@@ -7,5 +7,5 @@ import (
 
 type Server struct {
 	router  *mux.Router
-	Storage storage.Storage
+	storage storage.Storage
 }
