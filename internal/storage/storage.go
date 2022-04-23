@@ -8,21 +8,21 @@ func New() Storage {
 }
 
 func (s Storage) InitStorage() {
-	s["1"] = &users.UserProfile{
+	s["1"] = &users.Profile{
 		ID:       "1",
 		Email:    "user1@domain.com",
 		Username: "user1",
 		Password: "password1",
 		IsAdmin:  false,
 	}
-	s["2"] = &users.UserProfile{
+	s["2"] = &users.Profile{
 		ID:       "2",
 		Email:    "user2@domain.com",
 		Username: "user2",
 		Password: "password2",
 		IsAdmin:  false,
 	}
-	s["3"] = &users.UserProfile{
+	s["3"] = &users.Profile{
 		ID:       "3",
 		Email:    "user3@domain.com",
 		Username: "user3",
