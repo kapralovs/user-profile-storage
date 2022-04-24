@@ -3,7 +3,6 @@ package server
 import (
 	"encoding/base64"
 	"errors"
-	"log"
 	"net/http"
 	"strings"
 
@@ -33,11 +32,10 @@ func authorization(st storage.Storage, w http.ResponseWriter, r *http.Request) (
 	encodedCreds := headerValue[len("Basic "):]
 	user, err := checkCredentials(st, encodedCreds)
 	if err != nil {
-		log.Println(err)
 		w.Header().Add("WWW-Authenticate", "Basic realm="+encodedCreds)
 		w.WriteHeader(401)
 
-		return nil, err
+		return nil, errors.New("authorization failed")
 	}
 
 	return user, nil
