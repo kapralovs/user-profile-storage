@@ -1,13 +1,17 @@
 package storage
 
-import "github.com/kapralovs/user-profile-storage/internal/users"
+import (
+	"errors"
+
+	"github.com/kapralovs/user-profile-storage/internal/users"
+)
 
 func New() Storage {
 	store := make(Storage)
 	return store
 }
 
-func (s Storage) InitStorage() {
+func (s Storage) Init() {
 	s["1"] = &users.Profile{
 		ID:       "1",
 		Email:    "user1@domain.com",
@@ -29,4 +33,22 @@ func (s Storage) InitStorage() {
 		Password: "password3",
 		IsAdmin:  false,
 	}
+}
+
+func (st Storage) LoadProfile(id string) *users.Profile {
+	if profile, ok := st[id]; ok {
+		return profile
+	}
+
+	return nil
+}
+
+func (st Storage) SaveProfile(p *users.Profile) error {
+	if _, ok := st[p.ID]; ok {
+		return errors.New("user with this ID is already exists")
+	}
+
+	st[p.ID] = p
+
+	return nil
 }

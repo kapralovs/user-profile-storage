@@ -29,19 +29,3 @@ func (p *Profile) Edit(np *Profile) {
 		p.IsAdmin = np.IsAdmin
 	}
 }
-
-// func Create() error {
-// 	return nil
-// }
-
-// func Delete() error {
-// 	return nil
-// }
-
-// func Edit() error {
-// 	return nil
-// }
-
-// func Load() (*UserProfile, error) {
-// 	return usr, nil
-// }

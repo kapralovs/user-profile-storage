@@ -8,67 +8,53 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/kapralovs/user-profile-storage/internal/auth"
+	"github.com/kapralovs/user-profile-storage/internal/storage"
 	"github.com/kapralovs/user-profile-storage/internal/users"
 )
 
-func create(s *Server) func(http.ResponseWriter, *http.Request) {
+func create(st storage.Storage) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Получаем креды из хедера
-		encodedCreds := r.Header.Get("Authorization")
-		fmt.Printf("Authorization header value: %v\n", encodedCreds) //Debug
-		// Проверяем креды на корректность
-		user, err := auth.CheckCredentials(s.storage, encodedCreds)
+		user, err := authorization(st, w, r)
 		if err != nil {
-			// Если креды не корректные, тогда логгируем ошибку...
-			log.Println(err)
-			// ...затем выставляем хедер для респонса,...
-			w.Header().Add("WWW-Authenticate", "Basic realm="+encodedCreds)
-
-			// ...пишем в хедер статус код 401 - Not Authorized...
-			w.WriteHeader(401)
-
-			// ...и пишем текст ошибки в ответ
 			fmt.Fprintln(w, err)
-
-			return
-		}
-
-		// Если с кредами все ок, тогда создаем профиль под нового пользователя...
-		var newUser *users.Profile
-
-		// ...затем читаем из ответа JSON с данными нового профиля
-		body, err := ioutil.ReadAll(r.Body)
-		if err != nil {
-			log.Fatal(err) //logging error
-		}
-
-		// Парсим JSON, заполняя соответствующие поля для профиля нового пользователя
-		if err := json.Unmarshal(body, &newUser); err != nil {
-			log.Fatal(err) //logging error
-		}
-
-		// И пишем профиль нового пользователя в БД
-		s.storage[newUser.ID] = newUser
-	}
-}
-
-func edit(s *Server) func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		encodedCreds := r.Header.Get("Authorization")
-		user, err := auth.CheckCredentials(s.storage, encodedCreds)
-		if err != nil {
-			log.Println(err)
-			w.Header().Add("WWW-Authenticate", "Basic realm="+encodedCreds) //add response header
-			w.WriteHeader(401)                                              //response status code
-			fmt.Fprintln(w, err)                                            //send response
-
 			return
 		}
 
 		if err := users.CheckAdminRights(user); err != nil {
 			log.Println(err)
 			fmt.Fprintln(w, err.Error())
+			return
+		}
+
+		var newUser *users.Profile
+
+		body, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if err := json.Unmarshal(body, &newUser); err != nil {
+			log.Fatal(err)
+		}
+
+		if err := st.SaveProfile(newUser); err != nil {
+			fmt.Fprintln(w, err)
+		}
+	}
+}
+
+func edit(st storage.Storage) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		user, err := authorization(st, w, r)
+		if err != nil {
+			fmt.Fprintln(w, err)
+			return
+		}
+
+		if err := users.CheckAdminRights(user); err != nil {
+			log.Println(err)
+			fmt.Fprintln(w, err.Error())
+			return
 		}
 
 		body, err := ioutil.ReadAll(r.Body)
@@ -78,69 +64,70 @@ func edit(s *Server) func(http.ResponseWriter, *http.Request) {
 
 		var editedProfile *users.Profile
 		if err := json.Unmarshal(body, editedProfile); err != nil {
-			log.Println(err)
+			log.Fatal(err)
 		}
 
 		vars := mux.Vars(r)
 		id := vars["id"]
-		s.storage[id] = editedProfile
+		profile := st.LoadProfile(id)
+		if profile == nil {
+			fmt.Fprintln(w, "User profile with this ID does not exists!")
+			return
+		}
+		profile.Edit(editedProfile)
 	}
 }
 
-func remove(s *Server) func(http.ResponseWriter, *http.Request) {
+func remove(st storage.Storage) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		encodedCreds := r.Header.Get("Authorization")
-		user, err := auth.CheckCredentials(s.storage, encodedCreds)
+		user, err := authorization(st, w, r)
 		if err != nil {
-			log.Println(err)
-			w.Header().Add("WWW-Authenticate", "Basic realm="+encodedCreds)
-			w.WriteHeader(401)
 			fmt.Fprintln(w, err)
+			return
+		}
+
+		if err := users.CheckAdminRights(user); err != nil {
+			log.Println(err)
+			fmt.Fprintln(w, err.Error())
+			return
 		}
 
 		vars := mux.Vars(r)
 		id := vars["id"]
-		delete(s.storage, id)
+		delete(st, id)
 	}
 }
 
-func getProfiles(s *Server) func(http.ResponseWriter, *http.Request) {
+func getProfiles(st storage.Storage) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// s.storage["1"] = &users.UserProfile{
-		// 	ID:       "1",
-		// 	Email:    "user1@domain.com",
-		// 	Username: "user1",
-		// 	Password: "password1",
-		// 	IsAdmin:  false,
-		// }
-		// s.storage["2"] = &users.UserProfile{
-		// 	ID:       "2",
-		// 	Email:    "user2@domain.com",
-		// 	Username: "user2",
-		// 	Password: "password2",
-		// 	IsAdmin:  false,
-		// }
-		// s.storage["3"] = &users.UserProfile{
-		// 	ID:       "3",
-		// 	Email:    "user3@domain.com",
-		// 	Username: "user3",
-		// 	Password: "password3",
-		// 	IsAdmin:  false,
-		// }
-
-		var profiles []*users.Profile
-		for id := range s.storage {
-			profiles = append(profiles, s.storage[id])
+		_, err := authorization(st, w, r)
+		if err != nil {
+			fmt.Fprintln(w, err)
+			return
 		}
 
-		json.NewEncoder(w).Encode(profiles)
+		for id := range st {
+			profile := st.LoadProfile(id)
+			jsonAsBytes, err := json.Marshal(profile)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			fmt.Fprintln(w, string(jsonAsBytes))
+		}
 	}
 }
 
-func getProfileByID(s *Server) func(http.ResponseWriter, *http.Request) {
+func getProfileByID(st storage.Storage) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
+		_, err := authorization(st, w, r)
+		if err != nil {
+			fmt.Fprintln(w, err)
+			return
+		}
+
 		vars := mux.Vars(r)
 		id := vars["id"]
-		json.NewEncoder(w).Encode(s.storage[id])
+		json.NewEncoder(w).Encode(st[id])
 	}
 }
