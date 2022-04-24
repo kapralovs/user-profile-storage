@@ -35,11 +35,12 @@ func create(st storage.Storage) func(http.ResponseWriter, *http.Request) {
 			log.Fatal(err)
 		}
 
-		if err := st.Save(newUser); err != nil {
+		if err := st.CheckForDuplicates(newUser); err != nil {
 			fmt.Fprintln(w, err)
-			return
 		}
 
+		log.Printf("New profile created by user \"%s\"", user.Username)
+		st.Save(newUser)
 		fmt.Fprintln(w, "User profile is created!")
 	}
 }

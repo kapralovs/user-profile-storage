@@ -2,6 +2,7 @@ package storage
 
 import (
 	"errors"
+	"log"
 
 	"github.com/kapralovs/user-profile-storage/internal/users"
 )
@@ -36,21 +37,20 @@ func (s Storage) Init() {
 }
 
 func (st Storage) Load(id string) (*users.Profile, error) {
-	if profile, ok := st[id]; ok {
+	profile, ok := st[id]
+	if ok {
+		log.Printf("Profile \"%s\" is loaded.\n", profile.Username)
 		return profile, nil
 	}
 
+	log.Printf("Profile loading error. The profile \"%s\" does not exist.\n", profile.Username)
 	return nil, errors.New("it is not possible to upload a user profile because it does not exist")
 }
 
-func (st Storage) Save(p *users.Profile) error {
-	if _, ok := st[p.ID]; ok {
-		return errors.New("user with this ID is already exists")
-	}
-
+func (st Storage) Save(p *users.Profile) {
 	st[p.ID] = p
 
-	return nil
+	log.Printf("The profile \"%s\" is saved.\n", st[p.ID].Username)
 }
 
 func (st Storage) Edit(id string, np *users.Profile) error {
@@ -61,18 +61,22 @@ func (st Storage) Edit(id string, np *users.Profile) error {
 
 	if user.Email != np.Email {
 		user.Email = np.Email
+		log.Printf("Profile \"%s\" is edited (email)", user.Username)
 	}
 
 	if user.Username != np.Username {
 		user.Username = np.Username
+		log.Printf("Profile \"%s\" is edited (user)", user.Username)
 	}
 
 	if user.Password != np.Password {
 		user.Password = np.Password
+		log.Printf("Profile \"%s\" is edited (password)", user.Username)
 	}
 
 	if user.IsAdmin != np.IsAdmin {
 		user.IsAdmin = np.IsAdmin
+		log.Printf("Profile \"%s\" now has admin rights", user.Username)
 	}
 
 	st.Save(user)
@@ -85,6 +89,23 @@ func (st Storage) Delete(id string) error {
 		return errors.New("it is not possible to delete a user profile because it does not exist")
 	}
 
+	log.Printf("User profile \"%s\" has been deleted.\n", user.Username)
 	delete(st, user.ID)
+	return nil
+}
+
+func (st Storage) CheckForDuplicates(p *users.Profile) error {
+	for id, profile := range st {
+		if id == p.ID {
+			return errors.New("profile with this ID already exists")
+		}
+		if profile.Username == p.Username {
+			return errors.New("profile with this username already exists")
+		}
+		if profile.Email == p.Email {
+			return errors.New("profile with this email already exists")
+		}
+	}
+
 	return nil
 }

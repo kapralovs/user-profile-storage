@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/base64"
 	"errors"
+	"log"
 	"net/http"
 	"strings"
 
@@ -20,6 +21,7 @@ func checkCredentials(st storage.Storage, encodedCreds string) (*users.Profile, 
 
 	for _, profile := range st {
 		if profile.Username == creds[0] && profile.Password == creds[1] {
+			log.Printf("Credentials \"%s\" are checked\n", encodedCreds)
 			return profile, nil
 		}
 	}
@@ -38,5 +40,6 @@ func authorization(st storage.Storage, w http.ResponseWriter, r *http.Request) (
 		return nil, errors.New("authorization failed")
 	}
 
+	log.Printf("User \"%s\" is authorised\n", user.Username)
 	return user, nil
 }
