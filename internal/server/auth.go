@@ -3,7 +3,6 @@ package server
 import (
 	"encoding/base64"
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -30,8 +29,8 @@ func checkCredentials(st storage.Storage, encodedCreds string) (*users.Profile, 
 }
 
 func authorization(st storage.Storage, w http.ResponseWriter, r *http.Request) (*users.Profile, error) {
-	encodedCreds := r.Header.Get("Authorization")
-	fmt.Printf("Authorization header value: %v\n", encodedCreds)
+	headerValue := r.Header.Get("Authorization")
+	encodedCreds := headerValue[len("Basic "):]
 	user, err := checkCredentials(st, encodedCreds)
 	if err != nil {
 		log.Println(err)

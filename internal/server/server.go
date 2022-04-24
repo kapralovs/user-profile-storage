@@ -8,7 +8,7 @@ import (
 	"github.com/kapralovs/user-profile-storage/internal/storage"
 )
 
-func New(st storage.Storage) *Server {
+func New() *Server {
 	return &Server{
 		router: mux.NewRouter(),
 	}

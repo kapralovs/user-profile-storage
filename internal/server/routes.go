@@ -21,25 +21,26 @@ func create(st storage.Storage) func(http.ResponseWriter, *http.Request) {
 		}
 
 		if err := users.CheckAdminRights(user); err != nil {
-			log.Println(err)
 			fmt.Fprintln(w, err.Error())
 			return
 		}
-
-		var newUser *users.Profile
 
 		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			log.Fatal(err)
 		}
 
+		var newUser *users.Profile
 		if err := json.Unmarshal(body, &newUser); err != nil {
 			log.Fatal(err)
 		}
 
-		if err := st.SaveProfile(newUser); err != nil {
+		if err := st.Save(newUser); err != nil {
 			fmt.Fprintln(w, err)
+			return
 		}
+
+		fmt.Fprintln(w, "User profile is created!")
 	}
 }
 
@@ -52,14 +53,13 @@ func edit(st storage.Storage) func(http.ResponseWriter, *http.Request) {
 		}
 
 		if err := users.CheckAdminRights(user); err != nil {
-			log.Println(err)
-			fmt.Fprintln(w, err.Error())
+			fmt.Fprintln(w, err)
 			return
 		}
 
 		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {
-			log.Println(err)
+			log.Fatal(err)
 		}
 
 		var editedProfile *users.Profile
@@ -69,12 +69,10 @@ func edit(st storage.Storage) func(http.ResponseWriter, *http.Request) {
 
 		vars := mux.Vars(r)
 		id := vars["id"]
-		profile := st.LoadProfile(id)
-		if profile == nil {
-			fmt.Fprintln(w, "User profile with this ID does not exists!")
-			return
-		}
-		profile.Edit(editedProfile)
+
+		st.Edit(id, editedProfile)
+
+		fmt.Fprintln(w, "User profile edited!")
 	}
 }
 
@@ -94,7 +92,12 @@ func remove(st storage.Storage) func(http.ResponseWriter, *http.Request) {
 
 		vars := mux.Vars(r)
 		id := vars["id"]
-		delete(st, id)
+
+		if err := st.Delete(id); err != nil {
+			fmt.Fprintln(w, err)
+		}
+
+		fmt.Fprintln(w, "User profile is deleted!")
 	}
 }
 
@@ -107,7 +110,11 @@ func getProfiles(st storage.Storage) func(http.ResponseWriter, *http.Request) {
 		}
 
 		for id := range st {
-			profile := st.LoadProfile(id)
+			profile, err := st.Load(id)
+			if err != nil {
+				fmt.Fprintln(w, err)
+				return
+			}
 			jsonAsBytes, err := json.Marshal(profile)
 			if err != nil {
 				log.Fatal(err)
