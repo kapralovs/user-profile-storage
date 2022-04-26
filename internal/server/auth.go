@@ -11,7 +11,7 @@ import (
 	"github.com/kapralovs/user-profile-storage/internal/users"
 )
 
-func checkCredentials(st storage.Storage, encodedCreds string) (*users.Profile, error) {
+func checkCredentials(st *storage.Storage, encodedCreds string) (*users.Profile, error) {
 	decodedCreds, err := base64.StdEncoding.DecodeString(encodedCreds)
 	if err != nil {
 		return nil, err
@@ -19,7 +19,7 @@ func checkCredentials(st storage.Storage, encodedCreds string) (*users.Profile, 
 
 	creds := strings.Split(string(decodedCreds), ":")
 
-	for _, profile := range st {
+	for _, profile := range st.Db {
 		if profile.Username == creds[0] && profile.Password == creds[1] {
 			log.Printf("Credentials \"%s\" are checked\n", encodedCreds)
 			return profile, nil
@@ -29,7 +29,7 @@ func checkCredentials(st storage.Storage, encodedCreds string) (*users.Profile, 
 	return nil, errors.New("authorisation failed because credentials are incorrect")
 }
 
-func authorization(st storage.Storage, w http.ResponseWriter, r *http.Request) (*users.Profile, error) {
+func authorization(st *storage.Storage, w http.ResponseWriter, r *http.Request) (*users.Profile, error) {
 	headerValue := r.Header.Get("Authorization")
 	encodedCreds := headerValue[len("Basic "):]
 	user, err := checkCredentials(st, encodedCreds)

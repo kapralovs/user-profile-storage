@@ -8,5 +8,5 @@ import (
 
 type Storage struct {
 	mu sync.Mutex
-	db map[string]*users.Profile
+	Db map[string]*users.Profile
 }

@@ -13,21 +13,23 @@ func New() *Storage {
 }
 
 func (st *Storage) Init() {
-	st.db["1"] = &users.Profile{
+	inMemoryStorage:=make(map[string]*users.Profile,3)
+	st.Db=inMemoryStorage
+	st.Db["1"] = &users.Profile{
 		ID:       "1",
 		Email:    "someUser@domain.com",
 		Username: "SomeUer",
 		Password: "simplestPassword",
 		IsAdmin:  true,
 	}
-	st.db["2"] = &users.Profile{
+	st.Db["2"] = &users.Profile{
 		ID:       "2",
 		Email:    "johndoe@domain.com",
 		Username: "john_doe",
 		Password: "top123secret",
 		IsAdmin:  false,
 	}
-	st.db["3"] = &users.Profile{
+	st.Db["3"] = &users.Profile{
 		ID:       "3",
 		Email:    "mr_robot@domain.com",
 		Username: "mrR0b0T",
@@ -37,7 +39,7 @@ func (st *Storage) Init() {
 }
 
 func (st *Storage) Load(id string) (*users.Profile, error) {
-	profile, ok := st.db[id]
+	profile, ok := st.Db[id]
 	if ok {
 		log.Printf("Profile \"%s\" is loaded.\n", profile.Username)
 		return profile, nil
@@ -50,9 +52,9 @@ func (st *Storage) Load(id string) (*users.Profile, error) {
 func (st *Storage) Save(p *users.Profile) {
 	st.mu.Lock()
 	defer st.mu.Unlock()
-	st.db[p.ID] = p
+	st.Db[p.ID] = p
 
-	log.Printf("The profile \"%s\" is saved.\n", st.db[p.ID].Username)
+	log.Printf("The profile \"%s\" is saved.\n", st.Db[p.ID].Username)
 }
 
 func (st *Storage) Edit(id string, np *users.Profile) error {
@@ -96,12 +98,12 @@ func (st *Storage) Delete(id string) error {
 	}
 
 	log.Printf("User profile \"%s\" has been deleted.\n", user.Username)
-	delete(st.db, user.ID)
+	delete(st.Db, user.ID)
 	return nil
 }
 
 func (st *Storage) CheckForDuplicates(p *users.Profile) error {
-	for id, profile := range st.db {
+	for id, profile := range st.Db {
 		if id == p.ID {
 			return errors.New("profile with this ID already exists")
 		}

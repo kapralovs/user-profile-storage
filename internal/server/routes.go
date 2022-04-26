@@ -12,7 +12,7 @@ import (
 	"github.com/kapralovs/user-profile-storage/internal/users"
 )
 
-func create(st storage.Storage) func(http.ResponseWriter, *http.Request) {
+func create(st *storage.Storage) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		user, err := authorization(st, w, r)
 		if err != nil {
@@ -45,7 +45,7 @@ func create(st storage.Storage) func(http.ResponseWriter, *http.Request) {
 	}
 }
 
-func edit(st storage.Storage) func(http.ResponseWriter, *http.Request) {
+func edit(st *storage.Storage) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		user, err := authorization(st, w, r)
 		if err != nil {
@@ -77,7 +77,7 @@ func edit(st storage.Storage) func(http.ResponseWriter, *http.Request) {
 	}
 }
 
-func remove(st storage.Storage) func(http.ResponseWriter, *http.Request) {
+func remove(st *storage.Storage) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		user, err := authorization(st, w, r)
 		if err != nil {
@@ -102,7 +102,7 @@ func remove(st storage.Storage) func(http.ResponseWriter, *http.Request) {
 	}
 }
 
-func getProfiles(st storage.Storage) func(http.ResponseWriter, *http.Request) {
+func getProfiles(st *storage.Storage) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		_, err := authorization(st, w, r)
 		if err != nil {
@@ -110,7 +110,7 @@ func getProfiles(st storage.Storage) func(http.ResponseWriter, *http.Request) {
 			return
 		}
 
-		for id := range st {
+		for id := range st.Db {
 			profile, err := st.Load(id)
 			if err != nil {
 				fmt.Fprintln(w, err)
@@ -126,7 +126,7 @@ func getProfiles(st storage.Storage) func(http.ResponseWriter, *http.Request) {
 	}
 }
 
-func getProfileByID(st storage.Storage) func(http.ResponseWriter, *http.Request) {
+func getProfileByID(st *storage.Storage) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		_, err := authorization(st, w, r)
 		if err != nil {
@@ -136,6 +136,6 @@ func getProfileByID(st storage.Storage) func(http.ResponseWriter, *http.Request)
 
 		vars := mux.Vars(r)
 		id := vars["id"]
-		json.NewEncoder(w).Encode(st[id])
+		json.NewEncoder(w).Encode(st.Db[id])
 	}
 }
