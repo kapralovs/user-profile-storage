@@ -7,27 +7,27 @@ import (
 	"github.com/kapralovs/user-profile-storage/internal/users"
 )
 
-func New() Storage {
-	store := make(Storage)
+func New() *Storage {
+	store := &Storage{}
 	return store
 }
 
-func (s Storage) Init() {
-	s["1"] = &users.Profile{
+func (st *Storage) Init() {
+	st.db["1"] = &users.Profile{
 		ID:       "1",
 		Email:    "someUser@domain.com",
 		Username: "SomeUer",
 		Password: "simplestPassword",
 		IsAdmin:  true,
 	}
-	s["2"] = &users.Profile{
+	st.db["2"] = &users.Profile{
 		ID:       "2",
 		Email:    "johndoe@domain.com",
 		Username: "john_doe",
 		Password: "top123secret",
 		IsAdmin:  false,
 	}
-	s["3"] = &users.Profile{
+	st.db["3"] = &users.Profile{
 		ID:       "3",
 		Email:    "mr_robot@domain.com",
 		Username: "mrR0b0T",
@@ -36,8 +36,8 @@ func (s Storage) Init() {
 	}
 }
 
-func (st Storage) Load(id string) (*users.Profile, error) {
-	profile, ok := st[id]
+func (st *Storage) Load(id string) (*users.Profile, error) {
+	profile, ok := st.db[id]
 	if ok {
 		log.Printf("Profile \"%s\" is loaded.\n", profile.Username)
 		return profile, nil
@@ -47,13 +47,17 @@ func (st Storage) Load(id string) (*users.Profile, error) {
 	return nil, errors.New("it is not possible to upload a user profile because it does not exist")
 }
 
-func (st Storage) Save(p *users.Profile) {
-	st[p.ID] = p
+func (st *Storage) Save(p *users.Profile) {
+	st.mu.Lock()
+	defer st.mu.Unlock()
+	st.db[p.ID] = p
 
-	log.Printf("The profile \"%s\" is saved.\n", st[p.ID].Username)
+	log.Printf("The profile \"%s\" is saved.\n", st.db[p.ID].Username)
 }
 
-func (st Storage) Edit(id string, np *users.Profile) error {
+func (st *Storage) Edit(id string, np *users.Profile) error {
+	st.mu.Lock()
+	defer st.mu.Unlock()
 	user, err := st.Load(id)
 	if err != nil {
 		return errors.New("it is not possible to edit a user profile because it does not exist")
@@ -83,19 +87,21 @@ func (st Storage) Edit(id string, np *users.Profile) error {
 	return nil
 }
 
-func (st Storage) Delete(id string) error {
+func (st *Storage) Delete(id string) error {
+	st.mu.Lock()
+	defer st.mu.Unlock()
 	user, err := st.Load(id)
 	if err != nil {
 		return errors.New("it is not possible to delete a user profile because it does not exist")
 	}
 
 	log.Printf("User profile \"%s\" has been deleted.\n", user.Username)
-	delete(st, user.ID)
+	delete(st.db, user.ID)
 	return nil
 }
 
-func (st Storage) CheckForDuplicates(p *users.Profile) error {
-	for id, profile := range st {
+func (st *Storage) CheckForDuplicates(p *users.Profile) error {
+	for id, profile := range st.db {
 		if id == p.ID {
 			return errors.New("profile with this ID already exists")
 		}

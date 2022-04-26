@@ -1,7 +1,12 @@
 package storage
 
 import (
+	"sync"
+
 	"github.com/kapralovs/user-profile-storage/internal/users"
 )
 
-type Storage map[string]*users.Profile
+type Storage struct {
+	mu sync.Mutex
+	db map[string]*users.Profile
+}
