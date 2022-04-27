@@ -13,8 +13,8 @@ func New() *Storage {
 }
 
 func (st *Storage) Init() {
-	inMemoryStorage:=make(map[string]*users.Profile,3)
-	st.Db=inMemoryStorage
+	inMemoryStorage := make(map[string]*users.Profile, 3)
+	st.Db = inMemoryStorage
 	st.Db["1"] = &users.Profile{
 		ID:       "1",
 		Email:    "someUser@domain.com",
@@ -58,8 +58,6 @@ func (st *Storage) Save(p *users.Profile) {
 }
 
 func (st *Storage) Edit(id string, np *users.Profile) error {
-	st.mu.Lock()
-	defer st.mu.Unlock()
 	user, err := st.Load(id)
 	if err != nil {
 		return errors.New("it is not possible to edit a user profile because it does not exist")

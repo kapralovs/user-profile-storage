@@ -30,13 +30,14 @@ func create(st *storage.Storage) func(http.ResponseWriter, *http.Request) {
 			log.Fatal(err)
 		}
 
-		var newUser *users.Profile
+		newUser := &users.Profile{}
 		if err := json.Unmarshal(body, &newUser); err != nil {
 			log.Fatal(err)
 		}
 
 		if err := st.CheckForDuplicates(newUser); err != nil {
 			fmt.Fprintln(w, err)
+			return
 		}
 
 		log.Printf("New profile created by user \"%s\"", user.Username)
@@ -63,7 +64,7 @@ func edit(st *storage.Storage) func(http.ResponseWriter, *http.Request) {
 			log.Fatal(err)
 		}
 
-		var editedProfile *users.Profile
+		editedProfile := &users.Profile{}
 		if err := json.Unmarshal(body, editedProfile); err != nil {
 			log.Fatal(err)
 		}
@@ -71,7 +72,9 @@ func edit(st *storage.Storage) func(http.ResponseWriter, *http.Request) {
 		vars := mux.Vars(r)
 		id := vars["id"]
 
-		st.Edit(id, editedProfile)
+		if err := st.Edit(id, editedProfile); err != nil {
+			fmt.Println(w, err)
+		}
 
 		fmt.Fprintln(w, "User profile edited!")
 	}
@@ -136,6 +139,16 @@ func getProfileByID(st *storage.Storage) func(http.ResponseWriter, *http.Request
 
 		vars := mux.Vars(r)
 		id := vars["id"]
-		json.NewEncoder(w).Encode(st.Db[id])
+
+		profile, err := st.Load(id)
+		if err != nil {
+			fmt.Fprintln(w, err)
+			return
+		}
+		profileAsBytes, err := json.Marshal(profile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Fprintln(w, string(profileAsBytes))
 	}
 }
