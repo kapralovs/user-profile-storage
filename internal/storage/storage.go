@@ -2,6 +2,7 @@ package storage
 
 import (
 	"errors"
+	"fmt"
 	"log"
 
 	"github.com/kapralovs/user-profile-storage/internal/users"
@@ -63,6 +64,7 @@ func (st *Storage) Edit(id string, np *users.Profile) error {
 		return errors.New("it is not possible to edit a user profile because it does not exist")
 	}
 
+	fmt.Println("user loaded")
 	if user.Email != np.Email {
 		user.Email = np.Email
 		log.Printf("Profile \"%s\" is edited (email)", user.Username)

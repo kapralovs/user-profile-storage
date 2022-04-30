@@ -21,27 +21,33 @@ func create(st *storage.Storage) func(http.ResponseWriter, *http.Request) {
 		}
 
 		if err := users.CheckAdminRights(user); err != nil {
-			fmt.Fprintln(w, err.Error())
+			fmt.Fprintln(w, err)
 			return
 		}
 
 		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {
-			log.Fatal(err)
-		}
-
-		newUser := &users.Profile{}
-		if err := json.Unmarshal(body, &newUser); err != nil {
-			log.Fatal(err)
-		}
-
-		if err := st.CheckForDuplicates(newUser); err != nil {
+			log.Println(err)
 			fmt.Fprintln(w, err)
 			return
 		}
 
-		log.Printf("New profile created by user \"%s\"", user.Username)
+		newUser := &users.Profile{}
+		if err := json.Unmarshal(body, &newUser); err != nil {
+			log.Println(err)
+			fmt.Fprintln(w, err)
+			return
+		}
+
+		if err := st.CheckForDuplicates(newUser); err != nil {
+			log.Println(err)
+			fmt.Fprintln(w, err)
+			return
+		}
+
+		log.Printf("New profile created by user \"%s\"\n", user.Username)
 		st.Save(newUser)
+
 		fmt.Fprintln(w, "User profile is created!")
 	}
 }
@@ -61,19 +67,25 @@ func edit(st *storage.Storage) func(http.ResponseWriter, *http.Request) {
 
 		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {
-			log.Fatal(err)
+			log.Println(err)
+			fmt.Fprintln(w, err)
+			return
 		}
 
 		editedProfile := &users.Profile{}
 		if err := json.Unmarshal(body, editedProfile); err != nil {
-			log.Fatal(err)
+			log.Println(err)
+			fmt.Fprintln(w, err)
+			return
 		}
 
 		vars := mux.Vars(r)
 		id := vars["id"]
 
 		if err := st.Edit(id, editedProfile); err != nil {
-			fmt.Println(w, err)
+			log.Println(err)
+			fmt.Fprintln(w, err)
+			return
 		}
 
 		fmt.Fprintln(w, "User profile edited!")
