@@ -35,7 +35,7 @@ func authorization(st *storage.Storage, w http.ResponseWriter, r *http.Request) 
 	user, err := checkCredentials(st, encodedCreds)
 	if err != nil {
 		w.Header().Add("WWW-Authenticate", "Basic realm="+encodedCreds)
-		w.WriteHeader(401)
+		w.WriteHeader(http.StatusUnauthorized)
 
 		return nil, errors.New("authorization failed")
 	}

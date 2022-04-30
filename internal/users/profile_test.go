@@ -11,7 +11,32 @@ func TestCheckAdminRights(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		{
+			name: "Is_Admin",
+			args: args{
+				profile: &Profile{
+					ID:       "2",
+					Email:    "testUser@domain.com",
+					Username: "test_user",
+					Password: "superSecretPassword",
+					IsAdmin:  true,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Is_Not_Admin",
+			args: args{
+				profile: &Profile{
+					ID:       "2",
+					Email:    "testUser@domain.com",
+					Username: "test_user",
+					Password: "superSecretPassword",
+					IsAdmin:  false,
+				},
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

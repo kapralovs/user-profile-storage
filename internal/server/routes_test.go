@@ -68,9 +68,13 @@ func Test_create(t *testing.T) {
 			},
 			want: fmt.Sprintln("unexpected end of JSON input"),
 		},
-		// {
-		// 	// Empty storage case
-		// }
+		{
+			name: "Empty_Storage",
+			args: args{
+				st: storage.New(),
+			},
+			want: fmt.Sprintln("authorization failed"),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -99,9 +103,15 @@ func Test_create(t *testing.T) {
 				notValidReq := httptest.NewRequest("POST", "/user", nil)
 				notValidReq.Header.Add("Authorization", "Basic "+validCreds)
 				req = notValidReq
+			case "Empty_Storage":
+				fmt.Println("Storage set: ", tt.args.st.Db)
+				jsonAsBytes, _ = json.Marshal(&users.Profile{ID: "4", Email: "testNickname@testdomain.com", Username: "testNickName", Password: "TestPassword"})
+				validReq := httptest.NewRequest("POST", "/user", strings.NewReader(string(jsonAsBytes)))
+				validReq.Header.Add("Authorization", "Basic "+validCreds)
+				req = validReq
 			}
 			resp := httptest.NewRecorder()
-			handler := http.HandlerFunc(create(strg))
+			handler := http.HandlerFunc(create(tt.args.st))
 			handler.ServeHTTP(resp, req)
 			if !reflect.DeepEqual(tt.want, resp.Body.String()) {
 				t.Errorf("Response from create(st) = %v, want %v", resp.Body.String(), tt.want)
@@ -150,9 +160,13 @@ func Test_edit(t *testing.T) {
 			},
 			want: fmt.Sprintln("user \"john_doe\" does not have administrator rights"),
 		},
-		// {
-		// 	// Empty storage case
-		// }
+		{
+			name: "Empty_Storage",
+			args: args{
+				st: storage.New(),
+			},
+			want: fmt.Sprintln("authorization failed"),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -177,7 +191,7 @@ func Test_edit(t *testing.T) {
 				req = notValidReq
 			}
 			resp := httptest.NewRecorder()
-			handler := http.HandlerFunc(edit(strg))
+			handler := http.HandlerFunc(edit(tt.args.st))
 			handler.ServeHTTP(resp, req)
 			if !reflect.DeepEqual(tt.want, resp.Body.String()) {
 				t.Errorf("Response from edit(st) = %v, want %v", resp.Body.String(), tt.want)
@@ -225,9 +239,13 @@ func Test_remove(t *testing.T) {
 			},
 			want: fmt.Sprintln("user \"john_doe\" does not have administrator rights"),
 		},
-		// {
-		// 	// Empty storage case
-		// }
+		{
+			name: "Empty_Storage",
+			args: args{
+				st: storage.New(),
+			},
+			want: fmt.Sprintln("authorization failed"),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -249,7 +267,7 @@ func Test_remove(t *testing.T) {
 				req = notValidReq
 			}
 			resp := httptest.NewRecorder()
-			handler := http.HandlerFunc(remove(strg))
+			handler := http.HandlerFunc(remove(tt.args.st))
 			handler.ServeHTTP(resp, req)
 			if !reflect.DeepEqual(resp.Body.String(), tt.want) {
 				t.Errorf("Response from remove() = %v, want %v", resp.Body.String(), tt.want)
@@ -289,9 +307,13 @@ func Test_getProfiles(t *testing.T) {
 			},
 			want: fmt.Sprintln("authorization failed"),
 		},
-		// {
-		// 	// Empty storage case
-		// }
+		{
+			name: "Empty_Storage",
+			args: args{
+				st: storage.New(),
+			},
+			want: fmt.Sprintln("authorization failed"),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -306,7 +328,7 @@ func Test_getProfiles(t *testing.T) {
 				req = notValidReq
 			}
 			resp := httptest.NewRecorder()
-			handler := http.HandlerFunc(getProfiles(strg))
+			handler := http.HandlerFunc(getProfiles(tt.args.st))
 			handler.ServeHTTP(resp, req)
 			if !reflect.DeepEqual(resp.Body.String(), tt.want) {
 				t.Errorf("Response from getProfiles(st) = %v, want %v", resp.Body.String(), tt.want)
@@ -319,7 +341,6 @@ func Test_getProfileByID(t *testing.T) {
 	var (
 		strg = storage.New()
 		req  *http.Request
-		// router      *mux.Router
 	)
 	strg.Init()
 	validCreds := "U29tZVVlcjpzaW1wbGVzdFBhc3N3b3Jk"
@@ -347,6 +368,13 @@ func Test_getProfileByID(t *testing.T) {
 			},
 			want: fmt.Sprintln("authorization failed"),
 		},
+		{
+			name: "Empty_Storage",
+			args: args{
+				st: storage.New(),
+			},
+			want: fmt.Sprintln("authorization failed"),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -362,9 +390,16 @@ func Test_getProfileByID(t *testing.T) {
 				notValidReq := httptest.NewRequest("GET", "/user/2", nil)
 				notValidReq.Header.Add("Authorization", "Basic "+notValidCreds)
 				req = notValidReq
+			case "Empty_Storage":
+				newReq := func(method, path string, vars map[string]string) *http.Request {
+					r := httptest.NewRequest(method, path, nil)
+					return mux.SetURLVars(r, vars)
+				}
+				req = newReq("GET", "/user/3", map[string]string{"id": "3"})
+				req.Header.Add("Authorization", "Basic "+validCreds)
 			}
 			resp := httptest.NewRecorder()
-			handler := http.HandlerFunc(getProfileByID(strg))
+			handler := http.HandlerFunc(getProfileByID(tt.args.st))
 			handler.ServeHTTP(resp, req)
 			if !reflect.DeepEqual(resp.Body.String(), tt.want) {
 				t.Errorf("Response from getProfileByID(st) = %v, want %v", resp.Body.String(), tt.want)
